@@ -1,0 +1,14 @@
+/Users/max/Documents/Project/Demo/trae/springboot/src/main/java/com/example/demo/DemoApplication.java
+/Users/max/Documents/Project/Demo/trae/springboot/src/main/java/com/example/demo/config/RequestLoggingConfig.java
+/Users/max/Documents/Project/Demo/trae/springboot/src/main/java/com/example/demo/controller/AndroidDeviceController.java
+/Users/max/Documents/Project/Demo/trae/springboot/src/main/java/com/example/demo/controller/CustomDataController.java
+/Users/max/Documents/Project/Demo/trae/springboot/src/main/java/com/example/demo/controller/UserController.java
+/Users/max/Documents/Project/Demo/trae/springboot/src/main/java/com/example/demo/dto/PageResponseDTO.java
+/Users/max/Documents/Project/Demo/trae/springboot/src/main/java/com/example/demo/entity/User.java
+/Users/max/Documents/Project/Demo/trae/springboot/src/main/java/com/example/demo/model/ApiResponse.java
+/Users/max/Documents/Project/Demo/trae/springboot/src/main/java/com/example/demo/model/CustomData.java
+/Users/max/Documents/Project/Demo/trae/springboot/src/main/java/com/example/demo/model/FileInfo.java
+/Users/max/Documents/Project/Demo/trae/springboot/src/main/java/com/example/demo/repository/UserRepository.java
+/Users/max/Documents/Project/Demo/trae/springboot/src/main/java/com/example/demo/service/AdbService.java
+/Users/max/Documents/Project/Demo/trae/springboot/src/main/java/com/example/demo/service/UserService.java
+/Users/max/Documents/Project/Demo/trae/springboot/src/main/java/com/example/demo/service/impl/AdbServiceImpl.java
