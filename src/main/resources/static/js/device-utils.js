@@ -139,6 +139,14 @@ function takeScreenshot(deviceId) {
     screenshotModal.style.display = 'block';
     screenshotResult.textContent = '';
 
+    // 设置截图结果区域固定大小
+    screenshotResult.style.minWidth = '360px';
+    screenshotResult.style.minHeight = '360px';
+    screenshotResult.style.display = 'flex';
+    screenshotResult.style.alignItems = 'center';
+    screenshotResult.style.justifyContent = 'center';
+    screenshotResult.style.backgroundColor = '#f0f0f0';
+
     // 检查按钮是否已存在
       const existingToggleButton = screenshotModal.querySelector('#toggleClickMode');
       if (!existingToggleButton) {
