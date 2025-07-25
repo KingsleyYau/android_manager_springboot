@@ -45,6 +45,27 @@ function closeModal(modalId) {
     }
 }
 
+// 直接发送ADB命令的辅助函数
+function sendAdbCommandDirectly(deviceId, command) {
+    fetch('/android-devices/api/execute-command', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            deviceId: deviceId,
+            command: command
+        })
+    })
+    .then(response => response.text())
+    .then(data => {
+        console.log('Command executed:', data);
+    })
+    .catch(error => {
+        console.error('Error executing command:', error);
+    });
+}
+
 // 发送ADB命令
 function sendAdbCommand() {
     const deviceId = document.getElementById('commandDeviceId').textContent;
@@ -157,13 +178,73 @@ function takeScreenshot(deviceId) {
             const buttonContainer = document.createElement('div');
             buttonContainer.style.display = 'flex';
             buttonContainer.style.gap = '5px';
-            buttonContainer.style.justifyContent = 'flex-end';
+            buttonContainer.style.justifyContent = 'space-between';
             buttonContainer.style.marginTop = '10px';
-            buttonContainer.style.paddingRight = '10px';
+            buttonContainer.style.width = '100%';
+            buttonContainer.style.boxSizing = 'border-box';
 
-            // 移动刷新按钮到容器中
-            refreshButton.parentNode.insertBefore(buttonContainer, refreshButton);
-            buttonContainer.appendChild(refreshButton);
+            // 创建左侧按钮组
+            const leftButtonGroup = document.createElement('div');
+            leftButtonGroup.style.display = 'flex';
+            leftButtonGroup.style.gap = '5px';
+
+            // 返回键
+            const backButton = document.createElement('button');
+            backButton.textContent = '返回';
+            backButton.style.padding = '5px 10px';
+            backButton.style.backgroundColor = '#555555';
+            backButton.style.color = 'white';
+            backButton.style.border = 'none';
+            backButton.style.borderRadius = '4px';
+            backButton.style.cursor = 'pointer';
+            backButton.addEventListener('click', function() {
+                sendAdbCommandDirectly(deviceId, 'input keyevent 4');
+                setTimeout(captureScreenshot, 1000);
+            });
+            leftButtonGroup.appendChild(backButton);
+
+            // 主页键
+            const homeButton = document.createElement('button');
+            homeButton.textContent = '主页';
+            homeButton.style.padding = '5px 10px';
+            homeButton.style.backgroundColor = '#555555';
+            homeButton.style.color = 'white';
+            homeButton.style.border = 'none';
+            homeButton.style.borderRadius = '4px';
+            homeButton.style.cursor = 'pointer';
+            homeButton.addEventListener('click', function() {
+                sendAdbCommandDirectly(deviceId, 'input keyevent 3');
+                setTimeout(captureScreenshot, 1000);
+            });
+            leftButtonGroup.appendChild(homeButton);
+
+            // 多任务键
+            const recentAppsButton = document.createElement('button');
+            recentAppsButton.textContent = '多任务';
+            recentAppsButton.style.padding = '5px 10px';
+            recentAppsButton.style.backgroundColor = '#555555';
+            recentAppsButton.style.color = 'white';
+            recentAppsButton.style.border = 'none';
+            recentAppsButton.style.borderRadius = '4px';
+            recentAppsButton.style.cursor = 'pointer';
+            recentAppsButton.addEventListener('click', function() {
+                sendAdbCommandDirectly(deviceId, 'input keyevent 187');
+                setTimeout(captureScreenshot, 1000);
+            });
+            leftButtonGroup.appendChild(recentAppsButton);
+
+            // 创建右侧按钮组
+            const rightButtonGroup = document.createElement('div');
+            rightButtonGroup.style.display = 'flex';
+            rightButtonGroup.style.gap = '5px';
+
+            // 获取刷新按钮的父节点
+            const refreshParent = refreshButton.parentNode;
+
+            // 克隆刷新按钮并添加到右侧按钮组
+            const newRefreshButton = refreshButton.cloneNode(true);
+            rightButtonGroup.appendChild(newRefreshButton);
+            refreshButton.remove();
 
             // 创建点击开启交互按钮
             const toggleButton = document.createElement('button');
@@ -175,9 +256,14 @@ function takeScreenshot(deviceId) {
             toggleButton.style.borderRadius = '4px';
             toggleButton.style.cursor = 'pointer';
             toggleButton.textContent = '开启交互';
+            rightButtonGroup.appendChild(toggleButton);
 
-            // 添加到容器
-            buttonContainer.appendChild(toggleButton);
+            // 添加按钮组到容器
+            buttonContainer.appendChild(leftButtonGroup);
+            buttonContainer.appendChild(rightButtonGroup);
+
+            // 将按钮容器添加到DOM
+            refreshParent.appendChild(buttonContainer);
 
             // 添加事件监听
             toggleButton.addEventListener('click', function() {
@@ -191,6 +277,8 @@ function takeScreenshot(deviceId) {
     window.currentDeviceId = deviceId; // 存储当前设备ID
     document.getElementById('toggleClickMode').textContent = '开启交互';
     document.getElementById('toggleClickMode').style.backgroundColor = '#f44336';
+
+
 
     // 捕获截图
     captureScreenshot();
