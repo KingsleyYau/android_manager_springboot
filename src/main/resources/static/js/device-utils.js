@@ -157,7 +157,7 @@ function takeScreenshot(deviceId) {
             refreshButton.parentNode.insertBefore(buttonContainer, refreshButton);
             buttonContainer.appendChild(refreshButton);
 
-            // 创建点击传递按钮
+            // 创建点击开启交互按钮
             const toggleButton = document.createElement('button');
             toggleButton.id = 'toggleClickMode';
             toggleButton.style.padding = '5px 10px';
@@ -166,7 +166,7 @@ function takeScreenshot(deviceId) {
             toggleButton.style.border = 'none';
             toggleButton.style.borderRadius = '4px';
             toggleButton.style.cursor = 'pointer';
-            toggleButton.textContent = '开启点击传递';
+            toggleButton.textContent = '开启交互';
 
             // 添加到容器
             buttonContainer.appendChild(toggleButton);
@@ -176,16 +176,12 @@ function takeScreenshot(deviceId) {
                 toggleClickMode(deviceId);
             });
         }
-
-        // 添加按钮事件监听
-        document.getElementById('toggleClickMode').addEventListener('click', function() {
-            toggleClickMode(deviceId);
-        });
     }
 
     // 初始化点击模式状态
     window.clickModeActive = false;
-    document.getElementById('toggleClickMode').textContent = '开启点击传递';
+    window.currentDeviceId = deviceId; // 存储当前设备ID
+    document.getElementById('toggleClickMode').textContent = '开启交互';
     document.getElementById('toggleClickMode').style.backgroundColor = '#f44336';
 
     // 捕获截图
@@ -195,32 +191,64 @@ function takeScreenshot(deviceId) {
 // 切换点击模式
 function toggleClickMode(deviceId) {
     const button = document.getElementById('toggleClickMode');
-    const screenshotImg = document.querySelector('#screenshotResult img');
 
     window.clickModeActive = !window.clickModeActive;
 
     if (window.clickModeActive) {
-        button.textContent = '停止点击传递';
+        button.textContent = '停止交互';
         button.style.backgroundColor = '#4CAF50';
-
-        if (screenshotImg) {
-            // 添加点击事件监听
-            screenshotImg.addEventListener('click', function(e) {
-                handleScreenshotClick(e, deviceId, screenshotImg);
-            });
-            screenshotImg.style.cursor = 'crosshair';
-        }
+        // 添加全局点击事件监听
+        document.addEventListener('screenshotClick', handleGlobalScreenshotClick);
     } else {
-        button.textContent = '开启点击传递';
+        button.textContent = '开启交互';
         button.style.backgroundColor = '#f44336';
-
-        if (screenshotImg) {
-            // 移除点击事件监听（通过替换图片元素实现）
-            const newImg = screenshotImg.cloneNode(true);
-            screenshotImg.parentNode.replaceChild(newImg, screenshotImg);
-            newImg.style.cursor = 'default';
-        }
+        // 移除全局点击事件监听
+        document.removeEventListener('screenshotClick', handleGlobalScreenshotClick);
     }
+
+    // 更新截图图片的光标样式和点击事件
+    updateScreenshotInteraction();
+}
+
+// 全局点击事件处理函数
+function handleGlobalScreenshotClick(event) {
+    const { deviceId, imgElement, clickEvent } = event.detail;
+    handleScreenshotClick(clickEvent, deviceId, imgElement);
+}
+
+// 更新截图交互状态
+function updateScreenshotInteraction() {
+    const screenshotImg = document.querySelector('#screenshotResult img');
+    if (!screenshotImg) return;
+
+    if (window.clickModeActive) {
+        screenshotImg.style.cursor = 'crosshair';
+        // 移除旧的点击事件（如果有）
+        screenshotImg.removeEventListener('click', screenshotClickHandler);
+        // 添加新的点击事件
+        screenshotImg.addEventListener('click', screenshotClickHandler);
+    } else {
+        screenshotImg.style.cursor = 'default';
+        // 移除点击事件
+        screenshotImg.removeEventListener('click', screenshotClickHandler);
+    }
+}
+
+// 截图点击处理函数
+function screenshotClickHandler(e) {
+    // 如果正在检测输入焦点或未激活点击模式，则不处理点击
+    if (!window.clickModeActive || window.isCheckingInputFocus) return;
+    const deviceId = window.currentDeviceId; // 假设设备ID存储在全局变量中
+    const imgElement = e.currentTarget;
+    // 触发自定义事件
+    const event = new CustomEvent('screenshotClick', {
+        detail: {
+            deviceId: deviceId,
+            imgElement: imgElement,
+            clickEvent: e
+        }
+    });
+    document.dispatchEvent(event);
 }
 
 // 处理截图点击事件
@@ -240,8 +268,80 @@ function handleScreenshotClick(event, deviceId, imgElement) {
     const originalX = Math.round(x * scaleX);
     const originalY = Math.round(y * scaleY);
 
-    // 发送点击事件到设备
+    // 先发送点击事件激活可能的输入框
     sendClickToDevice(deviceId, originalX, originalY);
+    
+    // 标记正在检测输入焦点，禁止用户操作
+    window.isCheckingInputFocus = true;
+    
+    // 禁用交互按钮
+    const toggleButton = document.getElementById('toggleClickMode');
+    if (toggleButton) toggleButton.disabled = true;
+    
+    // 延迟1秒后检查输入焦点
+    setTimeout(() => {
+        // 检查是否有输入框弹出
+        checkInputFocus(deviceId).then(hasInputFocus => {
+            // 检测完成，允许用户操作
+            window.isCheckingInputFocus = false;
+            if (toggleButton) toggleButton.disabled = false;
+
+            if (hasInputFocus) {
+                // 如果有输入框，显示输入框让用户输入内容
+                const inputText = prompt('请输入要发送到设备的文本:');
+                if (inputText !== null) {
+                    // 发送输入内容到设备
+                    sendInputToDevice(deviceId, inputText);
+                    // 输入完成后自动刷新截图
+                    setTimeout(captureScreenshot, 500);
+                }
+            }
+        });
+    }, 1000); // 延迟1秒检查
+}
+
+// 检查设备是否有输入框焦点
+function checkInputFocus(deviceId) {
+    return fetch(`/android-devices/api/check-input-focus?deviceId=${deviceId}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+            console.log('检查输入焦点结果:', data);
+            if (!data.hasInputFocus) {
+                // 如果没有输入框，点击后自动刷新截图
+                setTimeout(captureScreenshot, 500);
+            }
+            return data.hasInputFocus;
+        })
+    .catch(error => {
+        console.error('检查输入焦点时发生错误:', error);
+        return false;
+    });
+}
+
+// 发送输入事件到设备
+function sendInputToDevice(deviceId, text) {
+    fetch('/android-devices/api/send-input-text', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            deviceId: deviceId,
+            text: text
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('输入文本发送结果:', data);
+    })
+    .catch(error => {
+        console.error('发送输入文本时发生错误:', error);
+    });
 }
 
 // 发送点击事件到设备
@@ -268,6 +368,9 @@ function sendClickToDevice(deviceId, x, y) {
 
 // 捕获设备截图
 function captureScreenshot() {
+    // 保存当前交互模式状态
+    const wasClickModeActive = window.clickModeActive;
+
     const deviceId = document.getElementById('screenshotDeviceId').textContent;
     const resultDiv = document.getElementById('screenshotResult');
 
@@ -282,7 +385,27 @@ function captureScreenshot() {
         })
         .then(blob => {
             const url = URL.createObjectURL(blob);
-            resultDiv.innerHTML = `<img src="${url}" alt="设备截图" style="max-width: 100%; max-height: 500px;" />`;
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = '设备截图';
+            img.style.maxWidth = '100%';
+            img.style.maxHeight = '500px';
+            
+            img.onload = function() {
+                resultDiv.innerHTML = '';
+                resultDiv.appendChild(img);
+                
+                // 恢复交互模式状态
+                if (wasClickModeActive) {
+                    window.clickModeActive = true;
+                    updateScreenshotInteraction();
+                    const button = document.getElementById('toggleClickMode');
+                    if (button) {
+                        button.textContent = '停止交互';
+                        button.style.backgroundColor = '#4CAF50';
+                    }
+                }
+            };
         })
         .catch(error => {
             resultDiv.textContent = '捕获截图时发生错误: ' + error.message;

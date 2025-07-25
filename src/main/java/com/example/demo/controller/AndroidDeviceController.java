@@ -36,6 +36,7 @@ import java.util.zip.ZipOutputStream;
 import com.example.demo.model.FileInfo;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.example.demo.service.AdbService;
 
@@ -545,6 +546,73 @@ public class AndroidDeviceController {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("message", "发送触摸事件失败: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    /**
+     * 检查设备当前是否有输入框弹出
+     */
+    @GetMapping("/api/check-input-focus")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> checkInputFocus(@RequestParam String deviceId) {
+        try {
+            // 执行ADB命令获取输入焦点信息
+            String result = adbService.executeCommand(deviceId, "dumpsys input | grep -A 10 'FocusedApplication'");
+            log.info("检查设备 {} 输入焦点结果: {}", deviceId, result);
+
+            Map<String, Object> response = new HashMap<>();
+            // 检查结果中是否包含输入法相关的包名或关键字
+            // 使用正则表达式匹配包含InputMethod且visible=true的行
+            boolean hasInputFocus = Pattern.compile("InputMethod.*visible=true").matcher(result).find();
+            response.put("success", true);
+            response.put("hasInputFocus", hasInputFocus);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("检查输入焦点失败: {}", e.getMessage(), e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "检查输入焦点失败: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    /**
+     * 发送文本到输入框并确认
+     */
+    @PostMapping("/api/send-input-text")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> sendInputText(@RequestBody Map<String, Object> request) {
+        try {
+            String deviceId = (String) request.get("deviceId");
+            String text = (String) request.get("text");
+
+            if (deviceId == null || text == null) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("message", "设备ID和文本参数不能为空");
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+
+            // 替换文本中的空格为%s（ADB input text命令的空格表示方式）
+            String formattedText = text.replace(" ", "%s");
+            // 执行ADB输入文本命令
+            String inputResult = adbService.executeCommand(deviceId, "input text " + formattedText);
+            // 发送确认键（KEYCODE_ENTER = 66）
+            String enterResult = adbService.executeCommand(deviceId, "input keyevent 66");
+
+            log.info("发送文本到设备 {}: {}, 结果: {}", deviceId, text, inputResult);
+            log.info("发送确认键到设备 {}, 结果: {}", deviceId, enterResult);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "文本输入和确认发送成功");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("发送文本输入失败: {}", e.getMessage(), e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "发送文本输入失败: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
