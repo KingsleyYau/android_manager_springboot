@@ -127,10 +127,143 @@ function cancelUploadToCurrentDirectory() {
 
 // 打开设备截图模态框
 function takeScreenshot(deviceId) {
-    document.getElementById('screenshotDeviceId').textContent = deviceId;
-    document.getElementById('screenshotModal').style.display = 'block';
-    document.getElementById('screenshotResult').textContent = '';
+    const screenshotModal = document.getElementById('screenshotModal');
+    const screenshotDeviceId = document.getElementById('screenshotDeviceId');
+    const screenshotResult = document.getElementById('screenshotResult');
+
+
+    // 设置设备ID
+    screenshotDeviceId.textContent = deviceId;
+
+    // 显示模态框
+    screenshotModal.style.display = 'block';
+    screenshotResult.textContent = '';
+
+    // 检查按钮是否已存在
+      const existingToggleButton = screenshotModal.querySelector('#toggleClickMode');
+      if (!existingToggleButton) {
+        // 找到刷新按钮
+        const refreshButton = screenshotModal.querySelector('button[onclick="captureScreenshot()"]');
+        if (refreshButton) {
+            // 创建按钮容器
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.display = 'flex';
+            buttonContainer.style.gap = '5px';
+            buttonContainer.style.justifyContent = 'flex-end';
+            buttonContainer.style.marginTop = '10px';
+            buttonContainer.style.paddingRight = '10px';
+
+            // 移动刷新按钮到容器中
+            refreshButton.parentNode.insertBefore(buttonContainer, refreshButton);
+            buttonContainer.appendChild(refreshButton);
+
+            // 创建点击传递按钮
+            const toggleButton = document.createElement('button');
+            toggleButton.id = 'toggleClickMode';
+            toggleButton.style.padding = '5px 10px';
+            toggleButton.style.backgroundColor = '#f44336';
+            toggleButton.style.color = 'white';
+            toggleButton.style.border = 'none';
+            toggleButton.style.borderRadius = '4px';
+            toggleButton.style.cursor = 'pointer';
+            toggleButton.textContent = '开启点击传递';
+
+            // 添加到容器
+            buttonContainer.appendChild(toggleButton);
+
+            // 添加事件监听
+            toggleButton.addEventListener('click', function() {
+                toggleClickMode(deviceId);
+            });
+        }
+
+        // 添加按钮事件监听
+        document.getElementById('toggleClickMode').addEventListener('click', function() {
+            toggleClickMode(deviceId);
+        });
+    }
+
+    // 初始化点击模式状态
+    window.clickModeActive = false;
+    document.getElementById('toggleClickMode').textContent = '开启点击传递';
+    document.getElementById('toggleClickMode').style.backgroundColor = '#f44336';
+
+    // 捕获截图
     captureScreenshot();
+}
+
+// 切换点击模式
+function toggleClickMode(deviceId) {
+    const button = document.getElementById('toggleClickMode');
+    const screenshotImg = document.querySelector('#screenshotResult img');
+
+    window.clickModeActive = !window.clickModeActive;
+
+    if (window.clickModeActive) {
+        button.textContent = '停止点击传递';
+        button.style.backgroundColor = '#4CAF50';
+
+        if (screenshotImg) {
+            // 添加点击事件监听
+            screenshotImg.addEventListener('click', function(e) {
+                handleScreenshotClick(e, deviceId, screenshotImg);
+            });
+            screenshotImg.style.cursor = 'crosshair';
+        }
+    } else {
+        button.textContent = '开启点击传递';
+        button.style.backgroundColor = '#f44336';
+
+        if (screenshotImg) {
+            // 移除点击事件监听（通过替换图片元素实现）
+            const newImg = screenshotImg.cloneNode(true);
+            screenshotImg.parentNode.replaceChild(newImg, screenshotImg);
+            newImg.style.cursor = 'default';
+        }
+    }
+}
+
+// 处理截图点击事件
+function handleScreenshotClick(event, deviceId, imgElement) {
+    if (!window.clickModeActive) return;
+
+    // 计算点击位置的相对坐标
+    const rect = imgElement.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    // 计算相对于原始图片尺寸的比例
+    const scaleX = imgElement.naturalWidth / rect.width;
+    const scaleY = imgElement.naturalHeight / rect.height;
+
+    // 计算原始图片上的坐标
+    const originalX = Math.round(x * scaleX);
+    const originalY = Math.round(y * scaleY);
+
+    // 发送点击事件到设备
+    sendClickToDevice(deviceId, originalX, originalY);
+}
+
+// 发送点击事件到设备
+function sendClickToDevice(deviceId, x, y) {
+    fetch('/android-devices/api/send-touch-event', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            deviceId: deviceId,
+            x: x,
+            y: y
+        })
+    })
+    .then(response => response.text())
+    .then(data => {
+        console.log('点击事件发送结果:', data);
+    })
+    .catch(error => {
+        console.error('发送点击事件时发生错误:', error);
+    });
 }
 
 // 捕获设备截图
@@ -161,21 +294,21 @@ function showAppList(deviceId) {
     document.getElementById('appListDeviceId').textContent = deviceId;
     const appListModal = document.getElementById('appListModal');
     appListModal.style.display = 'block';
-    // 调整模态窗口样式 - 移除全局蒙版效果
-    appListModal.style.position = 'absolute';
-    appListModal.style.top = '50%';
-    appListModal.style.left = '50%';
-    appListModal.style.transform = 'translate(-50%, -50%)';
-    appListModal.style.zIndex = '1000'; // 确保在其他内容之上
-    appListModal.style.backgroundColor = 'transparent';
-    appListModal.style.boxShadow = 'none';
-    appListModal.style.borderRadius = '8px';
-    appListModal.style.width = '90%';
-    appListModal.style.maxWidth = '900px';
-    appListModal.style.margin = '0';
-    appListModal.style.padding = '20px';
-    appListModal.style.overflow = 'hidden';
-    appListModal.style.maxHeight = '90vh';
+    // 恢复默认模态框样式，包含灰色模版
+    appListModal.style.position = '';
+    appListModal.style.top = '';
+    appListModal.style.left = '';
+    appListModal.style.transform = '';
+    appListModal.style.zIndex = '';
+    appListModal.style.backgroundColor = '';
+    appListModal.style.boxShadow = '';
+    appListModal.style.borderRadius = '';
+    appListModal.style.width = '';
+    appListModal.style.maxWidth = '';
+    appListModal.style.margin = '';
+    appListModal.style.padding = '';
+    appListModal.style.overflow = '';
+    appListModal.style.maxHeight = '';
     
     // 确保appListResult存在
     let appListResult = document.getElementById('appListResult');

@@ -218,11 +218,18 @@
     <!-- 应用列表模态框 -->
     <div id="appListModal" class="modal">
         <div class="modal-content">
-            <span class="close-btn" onclick="closeModal('appListModal')">&times;</span>
-            <h2>安装的应用列表</h2>
-            <p>设备ID: <span id="appListDeviceId"></span></p>
-            <div id="appListResult" style="max-height: 400px; overflow-y: auto; margin: 20px 0;"></div>
-            <button onclick="getAppList()">刷新应用列表</button>
+            <!-- 版头模版 -->
+            <div class="modal-header">
+                <span class="close-btn" onclick="closeModal('appListModal')">&times;</span>
+                <h2>安装的应用列表</h2>
+            </div>
+            <div class="modal-body">
+                <p>设备ID: <span id="appListDeviceId"></span></p>
+                <div id="appListResult" style="max-height: 400px; overflow-y: auto; margin: 20px 0;"></div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: flex-end;">
+                <button onclick="getAppList()">刷新应用列表</button>
+            </div>
         </div>
     </div>
     <!-- 文件浏览模态框 -->

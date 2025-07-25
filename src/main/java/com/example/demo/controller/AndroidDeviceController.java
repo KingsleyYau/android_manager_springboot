@@ -514,6 +514,41 @@ public class AndroidDeviceController {
         }
     }
 
+    /**
+     * 发送触摸事件到设备
+     */
+    @PostMapping("/api/send-touch-event")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> sendTouchEvent(@RequestBody Map<String, Object> request) {
+        try {
+            String deviceId = (String) request.get("deviceId");
+            Integer x = (Integer) request.get("x");
+            Integer y = (Integer) request.get("y");
+
+            if (deviceId == null || x == null || y == null) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("message", "设备ID和坐标参数不能为空");
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+
+            // 执行ADB触摸命令
+            String result = adbService.executeCommand(deviceId, "input tap " + x + " " + y);
+            log.info("发送触摸事件到设备 {}: ({}, {}), 结果: {}", deviceId, x, y, result);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "触摸事件发送成功");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("发送触摸事件失败: {}", e.getMessage(), e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "发送触摸事件失败: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
     // 内部类用于表示安卓设备信息
     public static class AndroidDevice {
         private String deviceId;
