@@ -22,8 +22,51 @@ function browseFiles(deviceId) {
 
 // 打开执行ADB命令模态框
 function executeAdbCommand(deviceId) {
+    const modal = document.getElementById('adbCommandModal');
     document.getElementById('commandDeviceId').textContent = deviceId;
-    document.getElementById('adbCommandModal').style.display = 'block';
+    modal.style.display = 'block';
+    
+    // 应用bash风格样式
+    const commandInput = document.getElementById('adbCommand');
+    const resultDiv = document.getElementById('commandResult');
+    
+    // 输入框样式
+    commandInput.style.backgroundColor = '#1e1e1e';
+    commandInput.style.color = '#00ff00';
+    commandInput.style.fontFamily = 'Courier New, monospace';
+    commandInput.style.padding = '10px';
+    commandInput.style.border = '1px solid #333';
+    commandInput.style.borderRadius = '4px';
+    commandInput.style.width = '100%';
+    commandInput.style.boxSizing = 'border-box';
+    commandInput.style.resize = 'none';
+
+    // 添加回车提交命令功能
+    commandInput.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            sendAdbCommand();
+        }
+    });
+    
+    // 结果区域样式
+    resultDiv.style.backgroundColor = '#1e1e1e';
+    resultDiv.style.color = '#ffffff';
+    resultDiv.style.fontFamily = 'Courier New, monospace';
+    resultDiv.style.padding = '10px';
+    resultDiv.style.border = '1px solid #333';
+    resultDiv.style.borderRadius = '4px';
+    resultDiv.style.minHeight = '200px';
+    resultDiv.style.maxHeight = '400px';
+    resultDiv.style.overflowY = 'auto';
+    resultDiv.style.whiteSpace = 'pre-wrap';
+    
+    // 模态框标题样式
+    const modalTitle = modal.querySelector('h2') || modal.querySelector('.modal-title');
+    if (modalTitle) {
+        modalTitle.style.color = '#00ff00';
+        modalTitle.style.fontFamily = 'Courier New, monospace';
+    }
 }
 
 // 打开文件传输模态框

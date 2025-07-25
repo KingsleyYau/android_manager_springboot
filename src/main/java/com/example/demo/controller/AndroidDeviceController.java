@@ -165,11 +165,11 @@ public class AndroidDeviceController {
             if (exitCode != 0) {
                 log.error("ADB命令执行失败，设备ID: {}, 命令: {}, 错误: {}", deviceId, command, error.toString());
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body("命令执行失败: " + error.toString());
+                        .body(error.toString());
             }
 
             log.info("ADB命令执行成功，设备ID: {}, 命令: {}", deviceId, command);
-            return ResponseEntity.ok("命令执行成功: " + output.toString());
+            return ResponseEntity.ok(output.toString());
 
         } catch (IOException | InterruptedException e) {
             log.error("执行ADB命令时发生异常，设备ID: {}, 命令: {}", deviceId, command, e);
